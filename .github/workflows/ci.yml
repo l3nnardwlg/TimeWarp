@@ -27,6 +27,14 @@ jobs:
       - run: pnpm build
       - run: pnpm check
       - run: pnpm test
+      - name: Validate standalone npm package
+        shell: bash
+        run: |
+          npm pack ./packages/cli/release
+          mkdir -p package-smoke/project
+          npm install --prefix package-smoke ./timewarp-dev-0.1.0.tgz --ignore-scripts
+          node package-smoke/node_modules/timewarp-dev/cli.js init package-smoke/project --json
+          node package-smoke/node_modules/timewarp-dev/cli.js doctor --project package-smoke/project --json
       - name: CLI smoke test
         shell: bash
         run: |

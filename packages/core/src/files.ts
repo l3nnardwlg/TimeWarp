@@ -9,6 +9,8 @@ import { Store } from "./store.js";
 import { TimeWarpError, type FileRecord } from "./types.js";
 const defaultSegments = new Set([".git",".timewarp","node_modules",".next","dist","build","coverage",".turbo",".cache","target",".venv","venv"]);
 function globToRegex(glob: string): RegExp {
+  // Trailing slash denotes a directory and all descendants.
+  if(glob.endsWith("/"))glob=glob.slice(0,-1);
   let result = "";
   for(let i=0;i<glob.length;i++){
     const c=glob[i]!;

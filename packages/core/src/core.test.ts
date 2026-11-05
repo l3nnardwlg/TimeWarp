@@ -58,6 +58,17 @@ test("ignored paths never enter snapshots",async()=>{
     assert.ok(!paths.some(x=>x.startsWith("node_modules")));
   });
 });
+
+test("directory exclusions protect every file below a sensitive folder",async()=>{
+  await fixture(async(s,dir)=>{
+    await mkdir(join(dir,"private"),{recursive:true});
+    await writeFile(join(dir,"private","credentials.pem"),"TOP SECRET");
+    await writeFile(join(dir,".timewarpignore"),"private/\n");
+    const cp=await initializeState(s);
+    assert.ok(![...s.checkpointFiles(cp.id).keys()].some(path=>path.startsWith("private/")));
+  });
+});
+
 test("restore previews, saves safety checkpoint and undo is reversible",async()=>{
   await fixture(async(s,dir)=>{
     const path=join(dir,"app.ts");
