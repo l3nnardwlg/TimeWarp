@@ -1,7 +1,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const token=document.querySelector('meta[name="timewarp-token"]').content;
-const state={view:"timeline",status:null,events:[],checkpoints:[],sessions:[],selected:null,pending:null};
+const state={view:"timeline",status:null,events:[],checkpoints:[],sessions:[],selected:null,pending:null,visible:200};
 const escapeHtml=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dt=v=>v?new Date(v).toLocaleString():"—";
 const bytes=n=>n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":(n/1048576).toFixed(1)+" MB";
@@ -19,7 +19,7 @@ function toast(message){
 async function refresh(){
   try{
     const [status,events,checkpoints,sessions]=await Promise.all([
-      api("status"),api("timeline?limit=2000"),api("checkpoints"),api("sessions")
+      api("status"),api("timeline?limit=10000"),api("checkpoints"),api("sessions")
     ]);
     Object.assign(state,{status,events,checkpoints,sessions});
     $("project-label").textContent=status.project.split(/[\\/]/).filter(Boolean).pop()||status.project;
@@ -58,7 +58,7 @@ function renderTimeline(){
   const filtered=state.events.filter(e=>e.relativePath.toLowerCase().includes(q)&&(!kind||e.eventType===kind));
   $("feed-count").textContent=filtered.length+" events";
   if(!filtered.length){$("feed").innerHTML='<div class="empty">No events match. Start recording with <b>timewarp watch .</b>, then modify a file.</div>';return;}
-  $("feed").innerHTML=filtered.map(e=>'<button class="event '+(state.selected===e.id?"selected":"")+'" data-event="'+e.id+'"><span class="event-mark '+escapeHtml(e.eventType)+'">'+kindSymbol(e.eventType)+'</span><span class="event-main"><strong>'+escapeHtml(e.relativePath)+'</strong><small>'+escapeHtml(e.eventType)+' · filesystem observation</small></span><span class="event-time">'+escapeHtml(new Date(e.timestamp).toLocaleTimeString())+'</span></button>').join("");
+  $("feed").innerHTML=filtered.slice(0,state.visible).map(e=>'<button class="event '+(state.selected===e.id?"selected":"")+'" data-event="'+e.id+'"><span class="event-mark '+escapeHtml(e.eventType)+'">'+kindSymbol(e.eventType)+'</span><span class="event-main"><strong>'+escapeHtml(e.relativePath)+'</strong><small>'+escapeHtml(e.eventType)+' · filesystem observation</small></span><span class="event-time">'+escapeHtml(new Date(e.timestamp).toLocaleTimeString())+'</span></button>').join("")+(filtered.length>state.visible?'<button class="quiet-button load-more" id="load-more">Load 200 more events</button>':"");
 }
 function renderCheckpoints(){
   $("feed-title").textContent="Saved states";$("feed-desc").textContent="Content-addressed · durable on disk";
@@ -126,15 +126,16 @@ $("confirm-dialog").addEventListener("close",async()=>{
 });
 $("new-checkpoint").addEventListener("click",createCheckpoint);
 $("refresh").addEventListener("click",refresh);
-$("filter-query").addEventListener("input",renderTimeline);
-$("filter-kind").addEventListener("change",renderTimeline);
+$("filter-query").addEventListener("input",()=>{state.visible=200;renderTimeline();});
+$("filter-kind").addEventListener("change",()=>{state.visible=200;renderTimeline();});
 $("search-trigger").addEventListener("click",()=>{$("filter-query").focus();view("timeline");$("filter-query").focus();});
 document.querySelectorAll(".nav-item").forEach(e=>e.addEventListener("click",()=>view(e.dataset.view)));
 $("close-inspector").addEventListener("click",()=>{$("inspector").innerHTML='<div class="inspector-empty"><div class="orbit">⌁</div><h3>Inspector cleared</h3><p>Select an item to continue.</p></div>';});
 document.addEventListener("click",e=>{
   const button=e.target.closest("button");
   if(!button)return;
-  if(button.dataset.event)inspectEvent(Number(button.dataset.event));
+  if(button.id==="load-more"){state.visible+=200;renderTimeline();}
+  else if(button.dataset.event)inspectEvent(Number(button.dataset.event));
   else if(button.dataset.checkpoint)inspectCheckpoint(button.dataset.checkpoint);
   else if(button.dataset.restore)preview(button.dataset.restore);
   else if(button.dataset.restoreFile)preview(button.dataset.restoreCheckpoint,button.dataset.restoreFile);

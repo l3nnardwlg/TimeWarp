@@ -30,6 +30,7 @@ function App(){
   const [sessions,setSessions]=useState<Session[]>([]);
   const [stats,setStats]=useState<Stats|null>(null);
   const [filter,setFilter]=useState("");
+  const [visible,setVisible]=useState(200);
   const [kind,setKind]=useState("");
   const [selected,setSelected]=useState<Selection|null>(null);
   const [diff,setDiff]=useState("");
@@ -122,6 +123,7 @@ function App(){
     try{await api("undo",{confirm:true});setNotice("The last restore was undone.");await refresh();}
     catch(e){setError(String(e));}finally{setBusy(false);}
   }
+  useEffect(()=>setVisible(200),[filter,kind,view]);
   const filtered=events.filter(e=>(!kind||e.eventType===kind)&&e.relativePath.toLowerCase().includes(filter.toLowerCase()));
   const iconFor=(event:Event)=>{
     switch(event.eventType){
@@ -174,7 +176,8 @@ function App(){
             <div className="card-title"><div><h2>{view==="timeline"?"Timeline":view==="checkpoints"?"Saved states":"Sessions"}</h2><p>{view==="timeline"?"Verified filesystem observations":"Local metadata stored in SQLite"}</p></div><span className="counter">{view==="timeline"?filtered.length:view==="checkpoints"?checkpoints.length:sessions.length} entries</span></div>
             {view==="timeline"&&<div className="filters"><label><Search size={17}/><input id="filter" value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Search by filename..."/></label><select aria-label="Event type" value={kind} onChange={e=>setKind(e.target.value)}><option value="">All changes</option><option value="created">Created</option><option value="modified">Modified</option><option value="deleted">Deleted</option><option value="renamed">Renamed</option><option value="chmod">Permissions</option></select></div>}
             <div className="feed-scroll">
-            {view==="timeline"&&(filtered.length?filtered.map(event=><button key={event.id} className={"entry "+(selected?.kind==="event"&&selected.event.id===event.id?"active":"")} onClick={()=>void inspectEvent(event)}><span className={"event-icon "+event.eventType}>{iconFor(event)}</span><span className="entry-main"><b>{event.relativePath}</b><small>{event.eventType} · origin not attributed</small></span><time>{new Date(event.timestamp).toLocaleTimeString()}</time></button>):<div className="empty">No file changes match the filter.<br/>Start <code>timewarp watch .</code> and modify a file.</div>)}
+            {view==="timeline"&&(filtered.length?filtered.slice(0,visible).map(event=><button key={event.id} className={"entry "+(selected?.kind==="event"&&selected.event.id===event.id?"active":"")} onClick={()=>void inspectEvent(event)}><span className={"event-icon "+event.eventType}>{iconFor(event)}</span><span className="entry-main"><b>{event.relativePath}</b><small>{event.eventType} · origin not attributed</small></span><time>{new Date(event.timestamp).toLocaleTimeString()}</time></button>):<div className="empty">No file changes match the filter.<br/>Start <code>timewarp watch .</code> and modify a file.</div>)}
+            {view==="timeline"&&filtered.length>visible&&<button className="btn ghost full" onClick={()=>setVisible(n=>n+200)}>Load more events</button>}
             {view==="checkpoints"&&(checkpoints.length?checkpoints.map(cp=><button key={cp.id} className={"entry "+(selected?.kind==="checkpoint"&&selected.checkpoint.id===cp.id?"active":"")} onClick={()=>void inspectCheckpoint(cp)}><span className="event-icon checkpoint"><GitBranch size={17}/></span><span className="entry-main"><b>{cp.label}</b><small>{formatTime(cp.createdAt)} · {cp.fileCount} files</small></span><ChevronRight size={16}/></button>):<div className="empty">No checkpoints exist yet.</div>)}
             {view==="sessions"&&(sessions.length?sessions.map(s=><div key={s.id} className="session-entry"><span className="event-icon checkpoint">{s.kind==="watch"?<Activity size={17}/>:<Command size={17}/>}</span><div className="entry-main"><b>{s.kind==="watch"?"Watch session":"Wrapped process"}</b><small>{formatTime(s.startedAt)} → {s.endedAt?formatTime(s.endedAt):"No end timestamp"}<br/>{short(s.id)}</small></div></div>):<div className="empty">No sessions recorded yet.</div>)}
             </div>
