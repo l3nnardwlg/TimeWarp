@@ -25,7 +25,9 @@ function id(v:unknown):string{
 }
 export async function startServer(s:Store,port=47329):Promise<{server:Server;url:string}>{
   if(port<1024||port>65535)throw new TimeWarpError("Port must be 1024–65535.","BAD_REQUEST");
-  const token=randomBytes(32).toString("hex");
+  const supplied=process.env.TIMEWARP_DASHBOARD_TOKEN;
+  if(supplied && !/^[a-f0-9]{64}$/.test(supplied))throw new TimeWarpError("Invalid dashboard auth token.","BAD_CONFIG");
+  const token=supplied??randomBytes(32).toString("hex");
   const server=createServer(async(req,res)=>{
     res.setHeader("X-Content-Type-Options","nosniff");
     res.setHeader("Referrer-Policy","no-referrer");
@@ -35,7 +37,11 @@ export async function startServer(s:Store,port=47329):Promise<{server:Server;url
       const host=req.headers.host||"";
       if(!/^((127\.0\.0\.1)|(localhost))(:[0-9]+)?$/.test(host)){json(res,403,{error:"Untrusted Host header"});return;}
       const origin=req.headers.origin;
-      if(origin&&!/^http:\/\/(127\.0\.0\.1|localhost)(:[0-9]+)?$/.test(origin)){json(res,403,{error:"Untrusted origin"});return;}
+      const localOrigin=Boolean(origin&&/^http:\/\/(127\.0\.0\.1|localhost)(:[0-9]+)?$/.test(origin));
+      const tauriOrigin=Boolean(origin&&/^(tauri:\/\/localhost|https?:\/\/tauri\.localhost)$/.test(origin));
+      if(origin&&!localOrigin&&!tauriOrigin){json(res,403,{error:"Untrusted origin"});return;}
+      if(tauriOrigin){res.setHeader("Access-Control-Allow-Origin",origin!);res.setHeader("Vary","Origin");res.setHeader("Access-Control-Allow-Headers","Content-Type, X-Timewarp-Token");res.setHeader("Access-Control-Allow-Methods","GET, POST, OPTIONS");}
+      if(req.method==="OPTIONS"){res.writeHead(204);res.end();return;}
       const url=new URL(req.url??"/","http://127.0.0.1:"+port);
       if(url.pathname.startsWith("/api/")){
         if(req.headers["x-timewarp-token"]!==token){json(res,403,{error:"Missing dashboard token"});return;}
