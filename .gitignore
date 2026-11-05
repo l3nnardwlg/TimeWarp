@@ -6,3 +6,5 @@ coverage/
 .timewarp/
 .pnpm-store/
 apps/desktop/src-tauri/target/
+
+packages/cli/release/
