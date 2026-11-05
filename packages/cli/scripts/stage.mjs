@@ -1,12 +1,13 @@
 
 import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 import { mkdir, copyFile, writeFile } from "node:fs/promises";
 const out=new URL("../release/",import.meta.url);
 await mkdir(new URL("./ui/",out),{recursive:true});
 await build({
-  entryPoints:[new URL("../dist/cli.js",import.meta.url).pathname],
+  entryPoints:[fileURLToPath(new URL("../dist/cli.js",import.meta.url))],
   bundle:true,platform:"node",format:"esm",target:"node22",
-  outfile:new URL("./cli.js",out).pathname,
+  outfile:fileURLToPath(new URL("./cli.js",out)),
   legalComments:"none"
 });
 for(const name of ["index.html","style.css","app.js"])await copyFile(new URL("../ui/"+name,import.meta.url),new URL("./ui/"+name,out));
