@@ -1,0 +1,59 @@
+name: CI
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cli-core:
+    name: Node ${{ matrix.node }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm build
+      - run: pnpm check
+      - run: pnpm test
+      - name: Validate standalone npm package
+        shell: bash
+        run: |
+          npm pack ./packages/cli/release
+          mkdir -p package-smoke/project
+          npm install --prefix package-smoke ./timewarp-dev-0.1.0.tgz --ignore-scripts
+          node package-smoke/node_modules/timewarp-dev/cli.js init package-smoke/project --json
+          node package-smoke/node_modules/timewarp-dev/cli.js doctor --project package-smoke/project --json
+      - name: Benchmark 5000 real files
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
+        run: node scripts/benchmark.mjs 5000
+      - name: CLI smoke test
+        shell: bash
+        run: |
+          mkdir -p smoke
+          printf 'hello\n' > smoke/file.txt
+          node packages/cli/dist/cli.js init smoke --json
+          node packages/cli/dist/cli.js status --project smoke --json
+          node packages/cli/dist/cli.js doctor --project smoke --json
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm audit --audit-level high

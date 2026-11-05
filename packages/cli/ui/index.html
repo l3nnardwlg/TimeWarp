@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="timewarp-token" content="__TIMEWARP_TOKEN__">
+<meta name="description" content="TimeWarp local development timeline and safe restore.">
+<title>TimeWarp — Development time travel</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-icon">↶</div><div><strong>TimeWarp</strong><small>DEVELOPER EDITION</small></div></div>
+  <div class="sidebar-group">WORKSPACE</div>
+  <nav aria-label="Primary">
+    <button class="nav-item active" data-view="timeline"><span class="glyph">◷</span> Activity timeline <kbd>1</kbd></button>
+    <button class="nav-item" data-view="checkpoints"><span class="glyph">◈</span> Checkpoints <kbd>2</kbd></button>
+    <button class="nav-item" data-view="sessions"><span class="glyph">▤</span> Sessions <kbd>3</kbd></button>
+    <button class="nav-item" data-view="settings"><span class="glyph">⚙</span> About & privacy <kbd>4</kbd></button>
+  </nav>
+  <div class="sidebar-bottom"><div class="local-pill"><span class="pulse"></span> LOCAL ONLY</div><p>Everything stays on this machine.<br>No account. No telemetry.</p></div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div class="breadcrumbs">WORKSPACE <span>/</span> <b id="project-label">Loading project...</b></div>
+    <div class="top-actions"><button id="search-trigger" class="quiet-button" title="Find a file (Ctrl/Cmd+F)">⌕ <span>Search</span> <kbd>⌘ F</kbd></button><button id="refresh" class="quiet-button" title="Refresh">↻</button><button id="new-checkpoint" class="primary-button">＋ <span>Checkpoint</span></button></div>
+  </header>
+  <div class="content">
+    <div class="eyebrow"><span class="eyebrow-dot"></span> YOUR LOCAL DEV FLIGHT RECORDER</div>
+    <div class="heading"><div><h1 id="view-title">Activity timeline</h1><p id="view-subtitle">A complete history of the changes TimeWarp actually observed.</p></div><span class="project-badge" id="project-badge">LOCAL PROJECT</span></div>
+    <section class="metrics" id="metrics" aria-label="Project overview">
+      <article class="metric"><span>Recorded events</span><strong id="count-events">—</strong><small>Local filesystem</small></article>
+      <article class="metric"><span>Checkpoints</span><strong id="count-checkpoints">—</strong><small>Recoverable states</small></article>
+      <article class="metric"><span>Sessions</span><strong id="count-sessions">—</strong><small>Recording sessions</small></article>
+      <article class="metric"><span>Snapshot storage</span><strong id="count-bytes">—</strong><small>Unique checkpoint blobs</small></article>
+    </section>
+    <section class="work-area" id="work-area">
+      <div class="feed-panel">
+        <div class="panel-top"><div><h2 id="feed-title">Timeline</h2><p id="feed-desc">Real changes, ordered by observation time</p></div><span id="feed-count" class="count-pill">0 events</span></div>
+        <div class="filters" id="filters"><label class="search-label"><span>⌕</span><input id="filter-query" placeholder="Filter by file path..." aria-label="Filter file path"></label><select id="filter-kind" aria-label="Filter event type"><option value="">All changes</option><option value="created">Created</option><option value="modified">Modified</option><option value="deleted">Deleted</option><option value="renamed">Renamed</option><option value="chmod">Permissions</option></select></div>
+        <div id="feed" class="feed" aria-live="polite"><div class="empty">Loading timeline...</div></div>
+      </div>
+      <aside class="detail-panel" id="detail-panel">
+        <div class="detail-heading"><span>INSPECTOR</span><button id="close-inspector" class="icon-btn" title="Close inspector">×</button></div>
+        <div id="inspector"><div class="inspector-empty"><div class="orbit">⌁</div><h3>Every change has a story.</h3><p>Select a timeline event or checkpoint to inspect it. You can preview restores before touching any files.</p></div></div>
+      </aside>
+    </section>
+    <footer>TimeWarp v0.1.0 · Local-first · <a href="https://github.com/l3nnardwlg/TimeWarp" target="_blank" rel="noopener noreferrer">GitHub</a> <span class="footer-right">Nothing leaves your machine.</span></footer>
+  </div>
+</main>
+</div>
+<div id="toast-region" role="status" aria-live="polite"></div>
+<dialog id="confirm-dialog"><form method="dialog" class="dialog-body"><div class="warning-icon">!</div><h2 id="confirm-title">Confirm restoration</h2><p id="confirm-text">This action modifies your working files.</p><div id="confirm-plan" class="plan-summary"></div><p class="safety-note">TimeWarp creates a safety checkpoint first. External side effects (deployments, databases, commands) are never undone.</p><div class="dialog-actions"><button value="cancel" class="quiet-button">Cancel</button><button value="confirm" id="confirm-apply" class="danger-button">Confirm and restore</button></div></form></dialog>
+</body></html>

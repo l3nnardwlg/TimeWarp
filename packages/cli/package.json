@@ -1,0 +1,35 @@
+{
+  "name": "timewarp-dev",
+  "version": "0.1.0",
+  "description": "Local-first rewind for AI-assisted coding sessions",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "timewarp": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/l3nnardwlg/TimeWarp.git",
+    "directory": "packages/cli"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "@timewarp/core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-ui.mjs && node scripts/stage.mjs",
+    "test": "node --test dist/*.test.js",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
