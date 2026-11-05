@@ -36,7 +36,8 @@ test("real dashboard API denies unauthenticated requests and performs confirmed 
     assert.equal(status.status,200);
     const plan=await fetch(server.url+"/api/restore-plan?id="+baseline.id,{headers:h});
     assert.equal(plan.status,200);
-    assert.equal((await plan.json()).modified,1);
+    const preview=(await plan.json()) as {modified:number};
+    assert.equal(preview.modified,1);
     const notConfirmed=await fetch(server.url+"/api/restore",{method:"POST",headers:{...h,"Content-Type":"application/json"},body:JSON.stringify({id:baseline.id})});
     assert.equal(notConfirmed.status,400);
     assert.equal(await readFile(file,"utf8"),"broken");
