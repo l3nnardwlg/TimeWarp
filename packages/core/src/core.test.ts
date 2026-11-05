@@ -10,6 +10,7 @@ import { reconcile } from "./recorder.js";
 import { planRestore, restore, undo, recover } from "./restore.js";
 import { blobPath, assertSafeRelative, assertNoSymlink } from "./files.js";
 import { unifiedDiff } from "./diff.js";
+import { withRestoreLock } from "./lock.js";
 async function fixture(fn:(s:Store,dir:string)=>Promise<void>){
   const dir=await mkdtemp(join(tmpdir(),"timewarp-test-"));
   const s=new Store(dir,true);
@@ -133,4 +134,16 @@ test("text diff is real and non-identical",()=>{
   const result=unifiedDiff("a\nb\n","a\nc\n");
   assert.ok(result.includes("-b"));
   assert.ok(result.includes("+c"));
+});
+
+test("exclusive project restore lock rejects concurrent destructive operations",async()=>{
+  await fixture(async(s)=>{
+    await withRestoreLock(s,async()=>{
+      await assert.rejects(
+        withRestoreLock(s,async()=>{}),
+        /lock|already|restore/i
+      );
+    });
+    await withRestoreLock(s,async()=>{});
+  });
 });

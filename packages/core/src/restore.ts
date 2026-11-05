@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { access, lstat } from "node:fs/promises";
 import { Store } from "./store.js";
+import { withRestoreLock } from "./lock.js";
 import { assertNoSymlink, blobPath, currentFiles, deleteSafe, diskAvailable, hashFile, verifyBlob, walk, writeBlobAtomic } from "./files.js";
 import { uncheckedCheckpoint } from "./snapshots.js";
 import { TimeWarpError, type FileRecord, type RestorePlan, type RestoreOperation } from "./types.js";
@@ -71,6 +72,7 @@ async function refreshState(s:Store):Promise<void>{
   s.replaceState([...map.values()],dirs);
 }
 export async function restore(s:Store,checkpointId:string,onlyPath?:string):Promise<{operationId:string;safetyCheckpointId:string;changed:number}>{
+  return withRestoreLock(s,async()=>{
   const plan=await planRestore(s,checkpointId,onlyPath);
   await preflight(s,plan);
   // Capture the entire current tree, including untracked new files, before mutating it.
@@ -89,8 +91,10 @@ export async function restore(s:Store,checkpointId:string,onlyPath?:string):Prom
     throw new TimeWarpError("Restore interrupted: "+String(e)+". Run timewarp recover --yes to roll back to the safety checkpoint.","RESTORE_INTERRUPTED");
   }
   return {operationId:id,safetyCheckpointId:safety.id,changed:plan.operations.length};
+  });
 }
 export async function recover(s:Store):Promise<{recovered:number}>{
+  return withRestoreLock(s,async()=>{
   const pending=s.pending();
   let recovered=0;
   for(const operation of pending){
@@ -113,6 +117,7 @@ export async function recover(s:Store):Promise<{recovered:number}>{
     }catch(e){s.restoreStatus(id,"recovery_required",String(e));throw e;}
   }
   return {recovered};
+  });
 }
 export async function undo(s:Store):Promise<{operationId:string;safetyCheckpointId:string;changed:number}>{
   const last=s.lastSuccessful();

@@ -1,11 +1,13 @@
 
 import { watch as fsWatch, type FSWatcher } from "node:fs";
 import { Store } from "./store.js";
+import { isRestoreLocked } from "./lock.js";
 import { walk, recordBlob } from "./files.js";
 import { initializeState } from "./snapshots.js";
 import { type FileRecord, type EventKind } from "./types.js";
 interface Change { type:EventKind; path:string; before:string|null; after:string|null; metadata:Record<string,unknown>; }
 export async function reconcile(s:Store,sessionId:string):Promise<{changes:number;files:number}>{
+  if(await isRestoreLocked(s))return {changes:0,files:s.state().size};
   const previous=s.state();
   const oldDirs=s.directories();
   const snapshot=await walk(s);
@@ -38,6 +40,8 @@ export async function reconcile(s:Store,sessionId:string):Promise<{changes:numbe
   for(const p of dirs)if(!oldDirs.has(p))changes.push({type:"directory-created",path:p,before:null,after:null,metadata:{}});
   for(const p of oldDirs)if(!dirs.has(p))changes.push({type:"directory-deleted",path:p,before:null,after:null,metadata:{}});
   changes.sort((a,b)=>a.path.localeCompare(b.path));
+  // Never persist a partially restored tree into the observed state.
+  if(await isRestoreLocked(s))return {changes:0,files:previous.size};
   s.transaction(()=>{
     s.db.exec("DELETE FROM file_state; DELETE FROM directory_state;");
     const insert=s.db.prepare("INSERT INTO file_state(path,sha,size,mode,mtime_ms) VALUES(?,?,?,?,?)");

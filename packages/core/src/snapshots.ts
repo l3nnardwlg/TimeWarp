@@ -3,12 +3,13 @@ import { randomUUID } from "node:crypto";
 import { readdir, unlink, rmdir } from "node:fs/promises";
 import { join } from "node:path";
 import { Store } from "./store.js";
+import { withRestoreLock } from "./lock.js";
 import { currentFiles, recordBlob, walk, verifyBlob, blobPath } from "./files.js";
 import { type Checkpoint, type FileRecord, TimeWarpError } from "./types.js";
 
 export async function checkpoint(s:Store,label="Manual checkpoint",sessionId:string|null=null):Promise<Checkpoint>{
   if(s.pending().length)throw new TimeWarpError("Unfinished restore detected. Run timewarp recover --yes first.","RECOVERY_REQUIRED");
-  return uncheckedCheckpoint(s,label,sessionId);
+  return withRestoreLock(s,()=>uncheckedCheckpoint(s,label,sessionId));
 }
 export async function uncheckedCheckpoint(s:Store,label:string,sessionId:string|null=null):Promise<Checkpoint>{
   const map=await currentFiles(s);
