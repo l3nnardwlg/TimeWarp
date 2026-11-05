@@ -1,0 +1,19 @@
+{
+  "name": "timewarp-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.20.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "check": "pnpm -r check",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+.timewarp/
+.pnpm-store/
+apps/desktop/src-tauri/target/
