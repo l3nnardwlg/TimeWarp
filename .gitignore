@@ -10,3 +10,6 @@ apps/desktop/src-tauri/target/
 packages/cli/release/
 
 apps/desktop/src-tauri/icons/icon.png
+
+apps/desktop/src-tauri/icons/icon.ico
+apps/desktop/src-tauri/icons/icon.icns

@@ -55,4 +55,16 @@ const png=Buffer.concat([
 const dest=new URL("../src-tauri/icons/",import.meta.url);
 await mkdir(dest,{recursive:true});
 await writeFile(new URL("icon.png",dest),png);
-console.log("Generated native TimeWarp icon.png ("+png.length+" bytes).");
+
+const icoHeader=Buffer.alloc(22);
+icoHeader.writeUInt16LE(0,0); icoHeader.writeUInt16LE(1,2); icoHeader.writeUInt16LE(1,4);
+icoHeader[6]=0; icoHeader[7]=0; icoHeader[8]=0; icoHeader[9]=0;
+icoHeader.writeUInt16LE(1,10); icoHeader.writeUInt16LE(32,12);
+icoHeader.writeUInt32LE(png.length,14);icoHeader.writeUInt32LE(22,18);
+await writeFile(new URL("icon.ico",dest),Buffer.concat([icoHeader,png]));
+const icnsHeader=Buffer.alloc(16);
+icnsHeader.write("icns",0);icnsHeader.writeUInt32BE(png.length+16,4);
+icnsHeader.write("ic08",8);icnsHeader.writeUInt32BE(png.length+8,12);
+await writeFile(new URL("icon.icns",dest),Buffer.concat([icnsHeader,png]));
+console.log("Generated native PNG, ICO and ICNS icons.");
+
