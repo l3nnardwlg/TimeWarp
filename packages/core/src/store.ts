@@ -1,6 +1,6 @@
 
 import { DatabaseSync } from "node:sqlite";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync, realpathSync, lstatSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { DEFAULT_CONFIG, TimeWarpError, type TimeWarpConfig, type FileRecord, type Checkpoint, type Session, type TimeWarpEvent, type RestorePlan } from "./types.js";
@@ -18,6 +18,7 @@ export class Store {
     if (!existsSync(this.dir) && !create) throw new TimeWarpError("Not initialized. Run timewarp init first.", "NOT_INITIALIZED");
     if (create) mkdirSync(this.dir, { recursive: true, mode: 0o700 });
     if (!existsSync(this.dir)) throw new TimeWarpError("TimeWarp state directory is missing.", "NOT_INITIALIZED");
+    if(lstatSync(this.dir).isSymbolicLink() || !lstatSync(this.dir).isDirectory()) throw new TimeWarpError("TimeWarp storage must be a real directory, not a symlink.","UNSAFE_PATH");
     try { chmodSync(this.dir, 0o700); } catch { /* Windows */ }
     const configPath = join(this.dir, "config.json");
     if (create && !existsSync(configPath)) writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2) + "\n", { mode: 0o600, flag: "wx" });

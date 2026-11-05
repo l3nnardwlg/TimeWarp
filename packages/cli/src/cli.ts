@@ -56,6 +56,10 @@ async function withStore<T>(path:string,fn:(s:Store)=>Promise<T>|T):Promise<T>{
 const redacted=(s:string):string=>s.replace(/((?:password|token|secret|api[_-]?key|authorization)[=:])\S+/gi,"$1[REDACTED]");
 async function main():Promise<void>{
   const args=process.argv.slice(2);
+  // Never interpret arguments after "--" as TimeWarp flags.
+  const separator=args.indexOf("--");
+  const forwarded=separator<0?[]:args.splice(separator+1);
+  if(separator>=0)args.pop();
   const json=flag(args,"--json");
   const yes=flag(args,"--yes");
   const help=flag(args,"--help")||flag(args,"-h");
@@ -93,13 +97,21 @@ async function main():Promise<void>{
     return;
   }
   if(cmd==="run"){
-    const split=args.indexOf("--");const command=split>=0?args.slice(split+1):args;
+    const command=forwarded.length?forwarded:args;
     if(!command.length)throw new TimeWarpError("Usage: timewarp run -- <command>","ARGUMENT");
     const code=await withStore(project,async s=>{
       await initializeState(s);
       const session=s.startSession("process");
       const start=new Date().toISOString();
-      const visible=command.map(redacted);
+      let redactNext=false;
+      const visible=command.map(arg=>{
+        if(redactNext){redactNext=false;return "[REDACTED]";}
+        if(/^--?(?:password|token|secret|api[_-]?key|authorization)(?:=|$)/i.test(arg)){
+          if(!arg.includes("="))redactNext=true;
+          return redacted(arg);
+        }
+        return redacted(arg);
+      });
       s.db.exec("CREATE TABLE IF NOT EXISTS commands(session_id TEXT PRIMARY KEY,command_json TEXT NOT NULL,cwd TEXT NOT NULL,start_at TEXT NOT NULL,end_at TEXT,exit_code INTEGER,pid INTEGER)");
       const statement=s.db.prepare("INSERT INTO commands(session_id,command_json,cwd,start_at) VALUES(?,?,?,?)");
       statement.run(session.id,JSON.stringify(visible),process.cwd(),start);
